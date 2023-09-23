@@ -1,42 +1,48 @@
+import argparse
 import pandas as pd
 import datetime
+import os
 
-# Datos de ejemplo
-cic = "VTMAE"  # Código de Identificación del Cliente
-current_datetime = datetime.datetime.now()
-seq = 1  # Número de secuencia
+def obtener_nombre_archivo_excel(ruta_excel):
+    return os.path.basename(ruta_excel)
 
-# Formatear la fecha y hora según el formato especificado
-formatted_datetime = current_datetime.strftime("%Y%m%d_%H%M%S")
+def obtener_nombre_archivo_salida(cic, seq):
+    current_datetime = datetime.datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y%m%d_%H%M%S")
+    return f"ABTPurchaseOrder_{formatted_datetime}_{cic}_{seq}.txt"
 
-# Crear el nombre del archivo
-file_name = f"ABTPurchaseOrder_{formatted_datetime}_{cic}_{seq}.txt"
+def leer_datos_desde_excel(ruta_excel):
+    return pd.read_excel(ruta_excel)
 
-# Imprimir el nombre del archivo
-print(file_name)
+def escribir_cabecera_en_archivo(nombre_archivo):
+    cabecera = """FH|ABTPurchaseOrderUploadv1.0|VTMAE|jacqueline.magana@airlinemro.parts|jacqueline.magana@airlinemro.parts|N|"""
+    with open(nombre_archivo, 'w') as archivo:
+        archivo.write(cabecera + '\n')
 
+def escribir_resultado_en_archivo(data_frame, nombre_archivo):
+    with open(nombre_archivo, 'a') as archivo:
+        for indice, fila in data_frame.iterrows():
+            linea = f"HH|N|{fila['BlukNumbre']}|{fila['Status']}|{fila['Cage']}||{fila['PO']}|{fila['PartNumber']}|EA|{fila['Quantity']}|USD|20230517| || |VTMAE| ||||| |XXX|"
+            archivo.write(linea + '\n')
 
+def main():
+    parser = argparse.ArgumentParser(description='Convertir archivo Excel a formato especificado.')
+    parser.add_argument('excel_file', help='Ruta del archivo Excel a procesar')
+    args = parser.parse_args()
 
+    ruta_excel = args.excel_file
+    nombre_archivo_excel = obtener_nombre_archivo_excel(ruta_excel)
 
-# Lee el archivo Excel
-df = pd.read_excel('Libro.xlsx')
+    cic = "VTMAE"
+    seq = 1
+    nombre_archivo_salida = obtener_nombre_archivo_salida(cic, seq)
 
-# Define la cabecera que deseas escribir en el archivo
-cabecera = """FH|ABTPurchaseOrderUploadv1.0|VTMAE|jacqueline.magana@airlinemro.parts|jacqueline.magana@airlinemro.parts|N|"""
+    df = leer_datos_desde_excel(ruta_excel)
 
-# Abre el archivo en modo escritura y escribe la cabecera
-with open(file_name, 'w') as archivo:
-    archivo.write(cabecera  + '\n')
+    escribir_cabecera_en_archivo(nombre_archivo_salida)
+    escribir_resultado_en_archivo(df, nombre_archivo_salida)
 
-print("Cabecera escrita en el archivo 'archivo.txt'.")
+    print(f"La conversión se ha completado. El resultado se encuentra en '{nombre_archivo_salida}'.")
 
-# Abre un archivo de texto para escribir el resultado
-with open(file_name, 'a') as archivo:
-    # Itera a través de las filas del DataFrame
-    for indice, fila in df.iterrows():
-        # Convierte los datos de la fila al formato deseado
-        linea = f"HH|N|{fila['BlukNumbre']}|{fila['Status']}|{fila['Cage']}||{fila['PO']}|{fila['PartNumber']}|EA|{fila['Quantity']}|USD|20230517| || |VTMAE| ||||| |XXX|"
-        # Escribe la línea en el archivo de resultado
-        archivo.write(linea + '\n')
-
-print("La conversión se ha completado. El resultado se encuentra en 'resultado.txt'.")
+if __name__ == "__main__":
+    main()
